@@ -40,7 +40,7 @@ export function MemoryGraphPanel({
         linkDirectionalParticles={1}
         linkDirectionalParticleWidth={1.4}
         linkDirectionalParticleColor={() => 'rgba(106, 211, 255, 0.9)'}
-        nodeLabel={(node) => node.id}
+        nodeLabel={(node) => node.id === MASTER_NODE_ID ? 'Video Core' : node.id}
         nodeVal={(node) =>
           node.id === MASTER_NODE_ID
             ? 18
