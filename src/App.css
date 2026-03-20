@@ -141,7 +141,9 @@
 
 .input-metrics p {
   margin: 0 0 6px;
-  font-size: 12px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 
 .input-metrics strong {
@@ -198,16 +200,21 @@
 .card-head h2 {
   margin: 0;
   text-align: left;
-  font-size: 20px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600;
 }
 
 .card-head span {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--text-h);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 4px 8px;
+  padding: 3px 7px;
 }
 
 .graph-host {
