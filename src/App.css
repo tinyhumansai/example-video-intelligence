@@ -269,6 +269,21 @@
   transform: translateY(-0.5px);
 }
 
+.meter-retro.tone-boring .meter-segment.active {
+  background: linear-gradient(180deg, #d0d5db, #8a939d);
+  box-shadow: 0 0 5px rgba(154, 163, 173, 0.45);
+}
+
+.meter-retro.tone-rising .meter-segment.active {
+  background: linear-gradient(180deg, #9cd4b1, #4ea878);
+  box-shadow: 0 0 5px rgba(78, 168, 120, 0.45);
+}
+
+.meter-retro.tone-exciting .meter-segment.active {
+  background: linear-gradient(180deg, #8bffc7, #11a95f);
+  box-shadow: 0 0 8px rgba(17, 169, 95, 0.55);
+}
+
 .meter-note {
   margin-top: 6px;
   text-align: left;

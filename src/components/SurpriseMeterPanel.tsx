@@ -5,6 +5,8 @@ type SurpriseMeterPanelProps = {
 export function SurpriseMeterPanel({ surprise }: SurpriseMeterPanelProps) {
   const segmentCount = 18
   const activeSegments = Math.round((surprise / 100) * segmentCount)
+  const meterTone =
+    surprise < 45 ? 'tone-boring' : surprise < 75 ? 'tone-rising' : 'tone-exciting'
 
   return (
     <article className="panel panel-surprise">
@@ -12,7 +14,11 @@ export function SurpriseMeterPanel({ surprise }: SurpriseMeterPanelProps) {
         <h2>Surprise Meter</h2>
         <span>{surprise}%</span>
       </div>
-      <div className="meter-retro" role="meter" aria-label="Model surprise level">
+      <div
+        className={`meter-retro ${meterTone}`}
+        role="meter"
+        aria-label="Model surprise level"
+      >
         {Array.from({ length: segmentCount }).map((_, index) => (
           <span
             key={`surprise-segment-${index}`}
