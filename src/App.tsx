@@ -11,6 +11,9 @@ type Thought = {
 type GraphNode = {
   id: string
   layer: number
+  channel: string
+  salience: number
+  surprise: number
   fx?: number
   fy?: number
 }
@@ -28,6 +31,15 @@ type GraphPayload = {
 const MAX_NODES = 64
 const MASTER_NODE_ID = 'master-core'
 const MAX_LAYER_DEPTH = 5
+const CHANNELS = ['vision', 'audio', 'spatial', 'semantic', 'social'] as const
+const CHANNEL_HUES: Record<string, number> = {
+  core: 275,
+  vision: 198,
+  audio: 24,
+  spatial: 152,
+  semantic: 292,
+  social: 340,
+}
 
 const SIGNAL_WORDS = [
   'gesture',
@@ -52,7 +64,17 @@ const MEMORY_ACTIONS = [
 ]
 
 const INITIAL_GRAPH: GraphPayload = {
-  nodes: [{ id: MASTER_NODE_ID, layer: 0, fx: 0, fy: 0 }],
+  nodes: [
+    {
+      id: MASTER_NODE_ID,
+      layer: 0,
+      channel: 'core',
+      salience: 1,
+      surprise: 24,
+      fx: 0,
+      fy: 0,
+    },
+  ],
   links: [],
 }
 
@@ -78,14 +100,17 @@ const buildThought = (surprise: number, nodeId: string): Thought => {
 }
 
 function App() {
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
   const graphRef = useRef<ForceGraphMethods<GraphNode, GraphLink> | undefined>(
     undefined,
   )
   const graphHostRef = useRef<HTMLDivElement | null>(null)
-  const [graphSize, setGraphSize] = useState({ width: 480, height: 300 })
+  const [graphSize, setGraphSize] = useState({ width: 1, height: 300 })
 
   const [graphData, setGraphData] = useState<GraphPayload>(INITIAL_GRAPH)
   const [surprise, setSurprise] = useState(34)
+  const [cameraStatus, setCameraStatus] = useState<'loading' | 'ready' | 'blocked'>('loading')
   const [streamStrength, setStreamStrength] = useState([42, 51, 63, 47, 58, 40])
   const [thoughts, setThoughts] = useState<Thought[]>([
     {
@@ -96,6 +121,45 @@ function App() {
   ])
 
   useEffect(() => {
+    let cancelled = false
+
+    const setupCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'user',
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        })
+
+        if (cancelled) {
+          stream.getTracks().forEach((track) => track.stop())
+          return
+        }
+
+        streamRef.current = stream
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          await videoRef.current.play().catch(() => undefined)
+        }
+        setCameraStatus('ready')
+      } catch {
+        setCameraStatus('blocked')
+      }
+    }
+
+    setupCamera()
+
+    return () => {
+      cancelled = true
+      streamRef.current?.getTracks().forEach((track) => track.stop())
+      streamRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
     const host = graphHostRef.current
     if (!host) {
       return
@@ -103,8 +167,8 @@ function App() {
 
     const setSize = () =>
       setGraphSize({
-        width: Math.max(320, Math.floor(host.clientWidth)),
-        height: Math.max(260, Math.floor(host.clientHeight)),
+        width: Math.max(1, Math.floor(host.clientWidth)),
+        height: Math.max(220, Math.floor(host.clientHeight)),
       })
 
     setSize()
@@ -130,6 +194,9 @@ function App() {
         const nextNode: GraphNode = {
           id: `n-${current.nodes.length.toString().padStart(2, '0')}`,
           layer: parent.layer + 1,
+          channel: randomFrom([...CHANNELS]),
+          salience: clamp(Math.random() * 0.75 + (parent.layer + 1) * 0.05, 0.2, 1),
+          surprise: 0,
         }
         const nextLink: GraphLink = {
           source: parent.id,
@@ -141,6 +208,7 @@ function App() {
           8,
           100,
         )
+        nextNode.surprise = noveltyScore
 
         setSurprise(noveltyScore)
         setThoughts((existing) =>
@@ -166,27 +234,44 @@ function App() {
 
   useEffect(() => {
     graphRef.current?.centerAt(0, 0, 250)
-    graphRef.current?.zoomToFit(280, 70)
+    graphRef.current?.zoom(1.15, 250)
   }, [graphData.nodes.length])
+
+  useEffect(() => {
+    const graph = graphRef.current
+    if (!graph) {
+      return
+    }
+
+    const chargeForce = graph.d3Force('charge') as unknown as
+      | { strength: (value: number) => void }
+      | null
+    chargeForce?.strength(-220)
+    graph.d3ReheatSimulation()
+  }, [graphSize.width, graphSize.height])
 
   return (
     <main className="dashboard">
       <section className="panel panel-video">
-        <div className="panel-head">
-          <h1>Neocortex Live Conscience</h1>
-          <span className="status">Realtime ingest online</span>
-        </div>
-
         <div className="video-screen" role="img" aria-label="Live sensory input simulation">
+          <video
+            ref={videoRef}
+            className="camera-feed"
+            autoPlay
+            muted
+            playsInline
+            aria-label="Live camera feed"
+          />
           <div className="scanlines" />
           <div className="video-overlay">
             <p>Input Stream</p>
-            <strong>Environmental + Interaction Feed</strong>
-          </div>
-          <div className="stream-bars">
-            {streamStrength.map((level, idx) => (
-              <span key={`stream-${idx}`} style={{ height: `${level}%` }} />
-            ))}
+            <strong>
+              {cameraStatus === 'ready'
+                ? 'Environmental + Interaction Feed (Live Camera)'
+                : cameraStatus === 'loading'
+                  ? 'Connecting camera...'
+                  : 'Camera unavailable - simulation mode'}
+            </strong>
           </div>
         </div>
 
@@ -207,38 +292,48 @@ function App() {
       </section>
 
       <section className="side-stack">
-        <article className="panel panel-graph">
-          <div className="card-head">
-            <h2>Growing Memory Graph</h2>
-            <span>{graphData.nodes.length} nodes</span>
-          </div>
-          <div className="graph-host" ref={graphHostRef}>
-            <ForceGraph2D<GraphNode, GraphLink>
-              ref={graphRef}
-              width={graphSize.width}
-              height={graphSize.height}
-              graphData={graphData}
-              backgroundColor="transparent"
-              dagMode="radialout"
-              dagLevelDistance={30}
-              cooldownTicks={90}
-              d3AlphaDecay={0.08}
-              d3VelocityDecay={0.45}
-              minZoom={0.55}
-              maxZoom={1.9}
-              linkColor={() => 'rgba(170, 59, 255, 0.35)'}
-              linkWidth={1.1}
-              linkDirectionalParticles={1}
-              linkDirectionalParticleWidth={1.4}
-              linkDirectionalParticleColor={() => 'rgba(106, 211, 255, 0.9)'}
-              nodeLabel={(node) => node.id}
-              nodeVal={(node) => (node.id === MASTER_NODE_ID ? 14 : 3 + 1 / (node.layer + 1))}
-              nodeColor={(node) =>
-                node.id === MASTER_NODE_ID ? 'rgba(170, 59, 255, 1)' : 'rgba(8, 6, 13, 0.62)'
+        <div className="graph-host panel panel-graph" ref={graphHostRef}>
+          <ForceGraph2D<GraphNode, GraphLink>
+            ref={graphRef}
+            width={graphSize.width}
+            height={graphSize.height}
+            graphData={graphData}
+            backgroundColor="transparent"
+            dagMode="radialout"
+            dagLevelDistance={52}
+            cooldownTicks={90}
+            d3AlphaDecay={0.08}
+            d3VelocityDecay={0.45}
+            minZoom={0.7}
+            maxZoom={1.9}
+            linkColor={() => 'rgba(170, 59, 255, 0.35)'}
+            linkWidth={1.1}
+            linkDirectionalParticles={1}
+            linkDirectionalParticleWidth={1.4}
+            linkDirectionalParticleColor={() => 'rgba(106, 211, 255, 0.9)'}
+            nodeLabel={(node) => node.id}
+            nodeVal={(node) =>
+              node.id === MASTER_NODE_ID
+                ? 18
+                : Math.max(2.4, 2.6 + node.salience * 8 + node.surprise / 32 - node.layer * 0.25)
+            }
+            nodeColor={(node) => {
+              if (node.id === MASTER_NODE_ID) {
+                return '#ffffff'
               }
-            />
-          </div>
-        </article>
+
+              const hue = CHANNEL_HUES[node.channel] ?? 265
+              const saturation = clamp(Math.round(64 + node.salience * 26), 60, 92)
+              const lightness = clamp(
+                Math.round(60 - node.layer * 4 + node.surprise / 15),
+                34,
+                74,
+              )
+
+              return `hsl(${hue} ${saturation}% ${lightness}%)`
+            }}
+          />
+        </div>
 
         <article className="panel panel-surprise">
           <div className="card-head">
@@ -265,7 +360,7 @@ function App() {
           <ul>
             {thoughts.map((thought) => (
               <li key={thought.id}>
-                <time>{thought.at}</time>
+                <span className="thought-time">{thought.at}</span>
                 <p>{thought.text}</p>
               </li>
             ))}
