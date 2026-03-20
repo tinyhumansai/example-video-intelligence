@@ -25,3 +25,16 @@ export type GraphPayload = {
 }
 
 export type CameraStatus = 'loading' | 'ready' | 'blocked'
+
+export type VideoHistoryEntry = {
+  videoId: string
+  name: string
+  processedAt: string
+}
+
+export type ChatMessage = {
+  id: string
+  role: 'user' | 'assistant' | 'system'
+  text: string
+  timestamp: string
+}
