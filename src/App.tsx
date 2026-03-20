@@ -58,7 +58,7 @@ function App() {
           videoRef.current.srcObject = stream
           await videoRef.current.play().catch(() => undefined)
         }
-      } catch {}
+      } catch { }
     }
 
     setupCamera()
@@ -97,7 +97,7 @@ function App() {
       setGraphData((current) => {
         if (current.nodes.length >= MAX_NODES) {
           const sourceId = randomFrom(current.nodes).id
-          setThoughts((existing) => [buildThought(liveSurprise, sourceId), ...existing].slice(0, 7))
+          setThoughts((existing) => [buildThought(liveSurprise, sourceId), ...existing].slice(0, 20))
           return current
         }
 
@@ -121,7 +121,7 @@ function App() {
 
         nextNode.surprise = liveSurprise
         setThoughts((existing) =>
-          [buildThought(liveSurprise, nextNode.id), ...existing].slice(0, 7),
+          [buildThought(liveSurprise, nextNode.id), ...existing].slice(0, 20),
         )
 
         return {
