@@ -1,8 +1,6 @@
 import type { Thought } from '../dashboard/types'
 
-type ThoughtStreamPanelProps = {
-  thoughts: Thought[]
-}
+type ThoughtStreamPanelProps = { thoughts: Thought[] }
 
 export function ThoughtStreamPanel({ thoughts }: ThoughtStreamPanelProps) {
   return (
