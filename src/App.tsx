@@ -10,13 +10,7 @@ import {
   MAX_LAYER_DEPTH,
   MAX_NODES,
 } from './dashboard/constants'
-import type {
-  CameraStatus,
-  GraphLink,
-  GraphNode,
-  GraphPayload,
-  Thought,
-} from './dashboard/types'
+import type { GraphLink, GraphNode, GraphPayload, Thought } from './dashboard/types'
 import { buildThought, clamp, randomFrom } from './dashboard/utils'
 import './App.css'
 
@@ -31,7 +25,6 @@ function App() {
 
   const [graphData, setGraphData] = useState<GraphPayload>(INITIAL_GRAPH)
   const [surprise, setSurprise] = useState(34)
-  const [cameraStatus, setCameraStatus] = useState<CameraStatus>('loading')
   const [streamStrength, setStreamStrength] = useState([42, 51, 63, 47, 58, 40])
   const [thoughts, setThoughts] = useState<Thought[]>([
     {
@@ -65,10 +58,7 @@ function App() {
           videoRef.current.srcObject = stream
           await videoRef.current.play().catch(() => undefined)
         }
-        setCameraStatus('ready')
-      } catch {
-        setCameraStatus('blocked')
-      }
+      } catch {}
     }
 
     setupCamera()
@@ -101,8 +91,13 @@ function App() {
 
   useEffect(() => {
     const timer = window.setInterval(() => {
+      const liveSurprise = clamp(Math.floor(Math.random() * 101), 0, 100)
+      setSurprise(liveSurprise)
+
       setGraphData((current) => {
         if (current.nodes.length >= MAX_NODES) {
+          const sourceId = randomFrom(current.nodes).id
+          setThoughts((existing) => [buildThought(liveSurprise, sourceId), ...existing].slice(0, 7))
           return current
         }
 
@@ -124,16 +119,9 @@ function App() {
           target: nextNode.id,
         }
 
-        const noveltyScore = clamp(
-          Math.round(14 + nextNode.layer * 10 + Math.random() * 32),
-          8,
-          100,
-        )
-        nextNode.surprise = noveltyScore
-
-        setSurprise(noveltyScore)
+        nextNode.surprise = liveSurprise
         setThoughts((existing) =>
-          [buildThought(noveltyScore, nextNode.id), ...existing].slice(0, 7),
+          [buildThought(liveSurprise, nextNode.id), ...existing].slice(0, 7),
         )
 
         return {
@@ -155,7 +143,7 @@ function App() {
 
   useEffect(() => {
     graphRef.current?.centerAt(0, 0, 250)
-    graphRef.current?.zoom(1.15, 250)
+    graphRef.current?.zoomToFit(260, 36)
   }, [graphData.nodes.length])
 
   useEffect(() => {
@@ -169,12 +157,12 @@ function App() {
       | null
     chargeForce?.strength(-220)
     graph.d3ReheatSimulation()
+    graph.zoomToFit(220, 36)
   }, [graphSize.width, graphSize.height])
 
   return (
     <main className="dashboard">
       <VideoPanel
-        cameraStatus={cameraStatus}
         streamStrength={streamStrength}
         surprise={surprise}
         videoRef={videoRef}

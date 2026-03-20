@@ -1,19 +1,12 @@
 import type { RefObject } from 'react'
-import type { CameraStatus } from '../dashboard/types'
 
 type VideoPanelProps = {
-  cameraStatus: CameraStatus
   streamStrength: number[]
   surprise: number
   videoRef: RefObject<HTMLVideoElement | null>
 }
 
-export function VideoPanel({
-  cameraStatus,
-  streamStrength,
-  surprise,
-  videoRef,
-}: VideoPanelProps) {
+export function VideoPanel({ streamStrength, surprise, videoRef }: VideoPanelProps) {
   return (
     <section className="panel panel-video">
       <div className="video-screen" role="img" aria-label="Live sensory input simulation">
@@ -25,17 +18,6 @@ export function VideoPanel({
           playsInline
           aria-label="Live camera feed"
         />
-        <div className="scanlines" />
-        <div className="video-overlay">
-          <p>Input Stream</p>
-          <strong>
-            {cameraStatus === 'ready'
-              ? 'Environmental + Interaction Feed (Live Camera)'
-              : cameraStatus === 'loading'
-                ? 'Connecting camera...'
-                : 'Camera unavailable - simulation mode'}
-          </strong>
-        </div>
       </div>
 
       <div className="input-metrics">
